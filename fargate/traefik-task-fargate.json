@@ -1,0 +1,82 @@
+{
+    "family": "traefik",
+    "taskRoleArn": "arn:aws:iam::account_id:role/TraefikECSReadAccessRole",
+    "executionRoleArn": "arn:aws:iam::account_id:role/ecsTaskExecutionRole",
+    "cpu": "512",
+    "memory": "1024",
+    "containerDefinitions": [
+        {
+            "name": "traefik",
+            "image": "traefik:v2.6.1",
+            "cpu": 500,
+            "portMappings": [
+                {
+                    "containerPort": 80,
+                    "hostPort": 80,
+                    "protocol": "tcp"
+                },
+                {
+                    "containerPort": 443,
+                    "hostPort": 443,
+                    "protocol": "tcp"
+                }
+            ],
+            "essential": true,
+            "command": [
+                "traefik",
+                "--providers.ecs.autoDiscoverClusters=false",
+                "--providers.ecs.clusters=fargate-cluster",
+                "--providers.ecs.exposedByDefault=false",
+                "--entrypoints.web.address=:80",
+                "--entrypoints.web.http.redirections.entryPoint.to=websecure",
+                "--entrypoints.web.http.redirections.entryPoint.scheme=https",
+                "--entrypoints.web.http.redirections.entrypoint.permanent=true",
+                "--entrypoints.websecure.address=:443",
+                "--api.dashboard=true",
+                "--api=true",
+                "--log.level=DEBUG",
+                "--accesslog=true",
+                "--accesslog.format=json",
+                "--certificatesresolvers.default.acme.email=example@mail.com",
+                "--certificatesresolvers.default.acme.storage=acme.json",
+                "--certificatesresolvers.default.acme.tlschallenge=true"
+            ],
+            "linuxParameters": {
+                "initProcessEnabled": true
+            },
+            "environment": [],
+            "secrets": [],
+            "volumesFrom": [],
+            "dockerLabels": {
+                "com.traefik.traefikee.component": "traefikce",
+                "traefik.enable": "true",
+                "traefik.http.routers.dashboard.rule": "Host(`dashboard.example.com`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))",
+                "traefik.http.routers.dashboard.service": "api@internal",
+                "traefik.http.routers.dashboard.entrypoints": "websecure",
+                "traefik.http.routers.dashboard.tls": "true",
+                "traefik.http.routers.dashboard.tls.certResolver": "default"
+            },
+            "mountPoints": [],
+            "readonlyRootFilesystem": false,
+            "privileged": false,
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "ecs/traefik",
+                    "awslogs-region": "aws_region",
+                    "awslogs-stream-prefix": "controller"
+                }
+            }
+        }
+    ],
+    "volumes": [],
+    "networkMode": "awsvpc",
+    "runtimePlatform": {
+        "cpuArchitecture": "X86_64",
+        "operatingSystemFamily": "LINUX"
+    },
+
+    "requiresCompatibilities": [
+        "FARGATE"
+    ]
+}
